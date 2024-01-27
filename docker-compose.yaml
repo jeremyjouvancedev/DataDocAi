@@ -1,0 +1,100 @@
+version: '3.7'
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    depends_on:
+      - postgres
+      - migration
+    volumes:
+      - ./:/home/app/datadocai
+      - ./docker/trino/certificate.pem:/home/app/datadocai/api/certificate.pem
+    env_file:
+      - .env-docker
+    ports:
+      - "8000:8000"
+    command: python manage.py runserver 0.0.0.0:8000
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - net
+
+  migration:
+    build:
+      context: .
+      dockerfile: backend.Dockerfile
+    env_file:
+      - .env-docker
+    entrypoint: [ "" ]
+    depends_on:
+      - postgres
+    volumes:
+      - ./api:/home/app/datadocai
+    command: bash -c "python manage.py makemigrations && python manage.py migrate"
+    networks:
+      - net
+
+  trino-coordinator:
+    image: trinodb/trino:435
+    container_name: trino-coordinator
+    ports:
+      - "8443:8443"
+      - "8080:8080"
+    volumes:
+      - ./docker/trino/coordinator/etc:/etc/trino:ro
+    depends_on:
+      - postgres-init
+    networks:
+      - net
+
+  postgres:
+    ports:
+      - "5432:5432"
+    image: postgres:12
+    container_name: postgres
+    environment:
+      POSTGRES_USER: dbt-trino
+      POSTGRES_PASSWORD: dbt-trino
+    networks:
+      - net
+
+  postgres-init:
+    image: postgres:12
+    container_name: postgres-init
+    depends_on:
+      - postgres
+    volumes:
+      - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    environment:
+      POSTGRES_USER: dbt-trino
+      POSTGRES_PASSWORD: dbt-trino
+      POSTGRES_HOST: postgres
+      POSTGRES_DATABASE: postgres
+    command: >
+      sh -c 'until pg_isready -h $$POSTGRES_HOST -U $$POSTGRES_USER; do sleep 1; done;
+      PGPASSWORD=$$POSTGRES_PASSWORD psql -h $$POSTGRES_HOST -U $$POSTGRES_USER -d $$POSTGRES_DATABASE -f /docker-entrypoint-initdb.d/init.sql'
+    networks:
+      - net
+
+  vllm:
+    image: vllm/vllm-openai:latest
+    container_name: vllm
+    deploy:
+      resources:
+        reservations:
+          devices:
+            - driver: nvidia
+              count: 1
+              capabilities: [ gpu ]
+    ports:
+      - '8001:8001'
+    volumes:
+      - ./models:/models
+    command: --model mistralai/Mistral-7B-Instruct-v0.2 --port 8001 --download-dir /models --served-model-name vllm --max-model-len 8192
+
+
+
+networks:
+  net:

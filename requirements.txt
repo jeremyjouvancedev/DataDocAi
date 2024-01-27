@@ -1,0 +1,7 @@
+langchain==0.1.0
+langchain-community==0.0.13
+langchain-core==0.1.13
+langchain-openai==0.0.2.post1
+trino==0.327.0
+crewai==0.1.32
+python-dotenv==1.0.0
