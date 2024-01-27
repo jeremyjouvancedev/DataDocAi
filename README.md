@@ -12,8 +12,8 @@ Welcome to the repository of our innovative AI tool for automatic database docum
 - **Multiple Exporter**: Saves the documentation in an easily readable and integrable.
   - Raw `JSON` Extract
   - `Trino` native comment
-  - `Open Metadata`
-  - `Datadocai Api`
+  - `Open Metadata` (Will be available soon)
+  - `Datadocai Api` (Will be available soon)
 
 - **Wide Compatibility**: Compatible with different types of databases connected through Trino.
 
