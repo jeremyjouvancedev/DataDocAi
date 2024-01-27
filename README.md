@@ -1,6 +1,8 @@
 
 <h1>DataDoc<b style="color: greenyellow">AI</b></h1>  
 
+![Texte alternatif](/assets/datadocai.png "datadocai").
+
 ## Introduction
 
 Welcome to the repository of our innovative AI tool for automatic database documentation. This tool is designed to work with various databases that can be connected through Trino, and it generates documentation in JSON format for easy access and integration.
