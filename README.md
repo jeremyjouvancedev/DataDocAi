@@ -42,12 +42,41 @@ Welcome to the repository of our innovative AI tool for automatic database docum
 4. Add the following in the `.env-local` file and `.env-docker` (for docker running)
 
 ```text
-TRINO_HOST=
-TRINO_PORT=
-TRINO_USER=
-TRINO_PASSWORD=
-OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXX
+# .env-local
+
+OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+TRINO_HOST=localhost
+TRINO_PORT=8443
+TRINO_USER=test
+TRINO_PASSWORD=test
+TRINO_CERTIFICATE_PATH=docker/trino/certificate.pem
+
+POSTGRES_USER=dbt-trino
+POSTGRES_PASSWORD=dbt-trino
+POSTGRES_HOST=postgres
+POSTGRES_DATABASE=postgres
+POSTGRES_PORT=5432
 ```
+
+```text
+# .env-docker
+
+OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+TRINO_HOST=dbt-coordinator
+TRINO_PORT=8443
+TRINO_USER=test
+TRINO_PASSWORD=test
+TRINO_CERTIFICATE_PATH=/home/app/datadocai/api/certificate.pem
+
+POSTGRES_USER=dbt-trino
+POSTGRES_PASSWORD=dbt-trino
+POSTGRES_HOST=postgres
+POSTGRES_DATABASE=postgres
+POSTGRES_PORT=5432
+```
+
 
 ### Usage
 
