@@ -14,13 +14,3 @@ class MetadataExporterBase(ABC):
     @abstractmethod
     def process(self, json):
         pass
-
-    def extract_json(self, text):
-        # Regular expression pattern to find text enclosed in <JSON></JSON>
-        pattern = r"<JSON>(.*?)</JSON>"
-
-        # Searching the text using the pattern
-        matches = re.findall(pattern, text, re.DOTALL)
-
-        # Return all matches
-        return matches

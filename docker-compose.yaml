@@ -55,8 +55,8 @@ services:
     image: postgres:12
     container_name: postgres
     environment:
-      POSTGRES_USER: dbt-trino
-      POSTGRES_PASSWORD: dbt-trino
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino
     networks:
       - net
 
@@ -68,8 +68,8 @@ services:
     volumes:
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     environment:
-      POSTGRES_USER: dbt-trino
-      POSTGRES_PASSWORD: dbt-trino
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino
       POSTGRES_HOST: postgres
       POSTGRES_DATABASE: postgres
     command: >
@@ -92,8 +92,8 @@ services:
       - '8001:8001'
     volumes:
       - ./models:/models
-    command: --model mistralai/Mistral-7B-Instruct-v0.2 --port 8001 --download-dir /models --served-model-name vllm --max-model-len 8192
-
+    #command: --model mistralai/Mistral-7B-Instruct-v0.2 --port 8001 --download-dir /models --served-model-name vllm --max-model-len 8192
+    command: --model microsoft/Phi-3-mini-4k-instruct --port 8001 --download-dir /models --served-model-name vllm
 
 
 networks:

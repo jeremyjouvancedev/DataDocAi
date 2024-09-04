@@ -12,14 +12,15 @@ class DatabaseClient:
                  password=os.getenv('TRINO_PASSWORD')):
 
         if host in ['localhost', '127.0.0.1', 'postgres', 'trino-coordinator']:
-            print("NO connection")
+            print("LOCAL connection")
             self.conn = connect(
                 host=host,
                 port=port,
                 user=user,
                 auth=BasicAuthentication(user, password),
                 http_scheme=HTTPS,
-                verify=os.getenv('TRINO_CERTIFICATE_PATH')
+                # verify=os.getenv('TRINO_CERTIFICATE_PATH')
+                verify=False
             )
         else:
             self.conn = connect(

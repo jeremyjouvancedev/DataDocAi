@@ -1,3 +1,5 @@
+import json
+
 from typing import Any, Dict, Optional
 
 from langchain_core.tools import BaseTool
@@ -59,7 +61,8 @@ class TableSampleRowsTool(BaseSQLDatabaseTool, BaseTool):
 
         cursor = self.db.conn.cursor()
         try:
-            cursor.execute(f"select * from {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} limit 10")
+            cursor.execute(
+                f"select * from {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} limit 10")
             data = cursor.fetchall()
             description = cursor.description
         except Exception as e:
@@ -85,7 +88,6 @@ class TableSampleRowsTool(BaseSQLDatabaseTool, BaseTool):
         output += "\n"
         return output
 
-import json
 
 class TableFillObjectTool(BaseSQLDatabaseTool, BaseTool):
     name = "table_fill_object_tool"
@@ -97,4 +99,3 @@ class TableFillObjectTool(BaseSQLDatabaseTool, BaseTool):
             self, json_data: str, run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> dict:
         return json.loads(json_data)
-        

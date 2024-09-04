@@ -3,6 +3,7 @@ import os
 import json
 from datadocai.models import CurrentTable
 from datadocai.metadata.exporter.base import MetadataExporterBase
+from datadocai.models import DocumentationTable
 
 
 class MetadataJsonExporter(MetadataExporterBase):
@@ -12,7 +13,7 @@ class MetadataJsonExporter(MetadataExporterBase):
         self.base_output_dir = base_output_dir
         self.output_dir = os.path.join(base_output_dir,
                                        self.current_table.trino_catalog,
-                                       self.current_table.trino_table)
+                                       self.current_table.trino_schema)
 
     def prepare(self):
         try:
@@ -20,9 +21,9 @@ class MetadataJsonExporter(MetadataExporterBase):
         except Exception as e:
             print(e)
 
-    def process(self, json_data):
-        print("OUPUT ==>\n\n", json_data)
-        result = self.extract_json(json_data)[0]
+    def process(self, json_data: DocumentationTable):
+        result = json_data.model_dump_json()
+
         #
         # Save the output
         #
@@ -31,11 +32,4 @@ class MetadataJsonExporter(MetadataExporterBase):
         with open(os.path.join(self.output_dir, file_name), 'w') as file:
             file.write(result)
 
-        result_json = None
-        try:
-            result_json = json.loads(result)
-        except Exception as e:
-            print(e)
-            pass
-
-        return result_json
+        return result
