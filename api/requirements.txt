@@ -1,5 +1,4 @@
-django==5.0.1
+django
 djangorestframework==3.14.0
-psycopg2==2.9.9
 psycopg2-binary==2.9.9
-trino==0.327.0
+trino==0.329.0
