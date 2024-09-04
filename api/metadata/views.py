@@ -11,7 +11,7 @@ from rest_framework.response import Response
 from .models import Catalog, Schema, Table, Column
 from .serializers import CatalogSerializer, SchemaSerializer, TableSerializer, ColumnSerializer
 from .serializers import SchemaSyncSerializer, TableSyncSerializer, ColumnSyncSerializer
-from services.trino_handler import TrinoHandler
+from datadocai.database import DatabaseClient
 
 from datadocai.metadata import TableMetadataManager
 from datadocai.database import DatabaseClient
@@ -95,7 +95,7 @@ class ColumnViewSet(viewsets.ModelViewSet):
 
 @api_view(['POST'])
 def synchronize_catalogs_with_trino(request):
-    th = TrinoHandler()
+    th = DatabaseClient()
     catalogs = th.list_catalogs()
     th.close_connection()
 
@@ -117,7 +117,7 @@ def synchronize_schemas_with_trino(request):
         # Fetch the catalog instance and perform synchronization logic here
         catalog = Catalog.objects.get(id=catalog_id)
 
-        th = TrinoHandler()
+        th = DatabaseClient()
         schemas = th.list_schemas(catalog_name=catalog.name)
         th.close_connection()
 
@@ -142,7 +142,7 @@ def synchronize_tables_with_trino(request):
         # Fetch the schema instance and perform synchronization logic here
         schema = Schema.objects.get(id=schema_id)
 
-        th = TrinoHandler()
+        th = DatabaseClient()
         tables = th.list_tables(catalog_name=schema.catalog.name, schema_name=schema.name)
         th.close_connection()
 
@@ -168,7 +168,7 @@ def synchronize_columns_with_trino(request):
         # Fetch the schema instance and perform synchronization logic here
         table = Table.objects.get(id=table_id)
 
-        th = TrinoHandler()
+        th = DatabaseClient()
         columns = th.list_columns(catalog_name=table.schema.catalog.name,
                                   schema_name=table.schema.name,
                                   table_name=table.name)

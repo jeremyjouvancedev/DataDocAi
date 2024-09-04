@@ -19,8 +19,7 @@ class DatabaseClient:
                 user=user,
                 auth=BasicAuthentication(user, password),
                 http_scheme=HTTPS,
-                # verify=os.getenv('TRINO_CERTIFICATE_PATH')
-                verify=False
+                verify=os.getenv('TRINO_CERTIFICATE_PATH', False)
             )
         else:
             self.conn = connect(
