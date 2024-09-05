@@ -150,7 +150,7 @@ class TableMetadataManager:
         workflow = self.generate_graph()
         return workflow.compile()
 
-    def process(self):
+    def process(self) -> tuple[DocumentationTable, dict]:
         app = self.compile_graph()
 
         inputs = {"input": f"Create a documentation for the table: {self.current_table.trino_table}",

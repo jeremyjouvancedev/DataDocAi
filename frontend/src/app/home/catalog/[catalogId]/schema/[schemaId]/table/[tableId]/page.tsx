@@ -14,16 +14,18 @@ interface PageProps {
     params: {
         catalogId: string;
         schemaId: string;
+        tableId: string;
     };
 }
 
 
 const TablesPage: NextPage<PageProps> = ({params}) => {
-    const {catalogId, schemaId} = params;
+    const {catalogId, schemaId, tableId} = params;
 
     const [catalog, setCatalog] = useState();
     const [schema, setSchema] = useState();
-    const [tables, setTables] = useState([]);
+    const [table, setTable] = useState();
+    const [columns, setColumns] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState<string>("");
 
@@ -60,9 +62,25 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
     }
 
 
-    const fetchTables = () => {
+    const fetchTable = () => {
         // Send selected catalogs to the backend for document generation
-        fetch(`http://localhost:8000/metadata/schemas/${schemaId}/tables/`, {
+        fetch(`http://localhost:8000/metadata/tables/${tableId}/`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }).then((response) => {
+            if (response.ok) {
+                return response.json()
+            }
+        }).then((data) => {
+            setTable(data)
+        });
+    }
+
+    const fetchColumns = () => {
+        // Send selected catalogs to the backend for document generation
+        fetch(`http://localhost:8000/metadata/tables/${tableId}/columns/`, {
             method: "GET",
             headers: {
                 "Content-Type": "application/json",
@@ -73,47 +91,62 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
             }
         }).then((data) => {
             if (data.data)
-                setTables(data.data)
+                setColumns(data.data)
         });
     }
 
     useEffect(() => {
         fetchCatalog()
         fetchSchema()
-        fetchTables()
+        fetchTable()
+        fetchColumns()
     }, []);
 
     const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
         setSearchTerm(e.target.value);
     };
 
-    const syncTables = () => {
+    const syncColumns = () => {
         // Send selected catalogs to the backend for document generation
-        fetch("http://localhost:8000/metadata/synchronize/tables/", {
+        fetch("http://localhost:8000/metadata/synchronize/columns/", {
             method: "POST",
             body: JSON.stringify({
-                schema_id: schemaId
+                table_id: tableId
             }),
             headers: {
                 "Content-Type": "application/json",
             }
         }).then((response) => {
             if (response.ok) {
-                fetchTables()
+                fetchColumns()
+            }
+        });
+    }
+
+    const generateDocumentation = () => {
+        // Send selected catalogs to the backend for document generation
+        fetch(`http://localhost:8000/metadata/tables/${tableId}/generate-documentation/`, {
+            method: "POST",
+            headers: {
+                "Content-Type": "application/json",
+            }
+        }).then((response) => {
+            if (response.ok) {
+                fetchColumns()
             }
         });
     }
 
     const filteredCatalogs = searchTerm
-        ? tables.filter((table) =>
-            table.name.toLowerCase().includes(searchTerm.toLowerCase())
+        ? columns.filter((column) =>
+            column.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
-        : tables;
+        : columns;
 
     return (
         <div className="container mx-auto flex max-w-7xl flex-col items-center justify-start gap-8 p-6">
             <h1 className="text-3xl font-bold text-center text-gray-800">Table
-                Management {catalog?.name} > {schema?.name}</h1>
+                Management {catalog?.name} > {schema?.name} > {table?.name}</h1>
 
             <div className="w-full lg:max-w-2xl space-y-6">
                 {/* Search Input */}
@@ -134,14 +167,29 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                     </CardHeader>
                     <CardContent className="space-y-4">
                         <Button
-                            onClick={syncTables}
+                            onClick={generateDocumentation}
+                            className="w-full bg-lime-500 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+                        >
+                            Generate Documentation
+                        </Button>
+                        <Button
+                            onClick={syncColumns}
                             className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
                         >
-                            Sync Tables
+                            Sync Columns
                         </Button>
+
                     </CardContent>
                 </Card>
 
+                <Card className="w-full">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-semibold text-gray-700">Description</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <p>{table?.documentation}</p>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
@@ -153,27 +201,31 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                                     Catalog name
                                 </th>
                                 <th scope="col" className="px-6 py-3">
+                                    Description
+                                </th>
+                                <th scope="col" className="px-6 py-3">
                                     Action
                                 </th>
                             </tr>
                             </thead>
                             <tbody>
-                            {tables.map((table) => (
+                            {columns.map((column) => (
                                 <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                     <th scope="row"
                                         className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                        {table.name}
+                                        {column.name}
                                     </th>
                                     <td className="px-6 py-4">
-                                        <a href={schemaId + "/table/" + table.id}
-                                           className="inline-flex items-center justify-center p-5 text-base font-medium text-gray-500 rounded-lg bg-gray-50 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-white">
-                                            <svg className="w-6 h-6 text-gray-800 dark:text-white"
-                                                 aria-hidden="true"
-                                                 xmlns="http://www.w3.org/2000/svg" width="24" height="24"
-                                                 fill="currentColor" viewBox="0 0 24 24">
-                                                <path fill-rule="evenodd"
-                                                      d="M4.998 7.78C6.729 6.345 9.198 5 12 5c2.802 0 5.27 1.345 7.002 2.78a12.713 12.713 0 0 1 2.096 2.183c.253.344.465.682.618.997.14.286.284.658.284 1.04s-.145.754-.284 1.04a6.6 6.6 0 0 1-.618.997 12.712 12.712 0 0 1-2.096 2.183C17.271 17.655 14.802 19 12 19c-2.802 0-5.27-1.345-7.002-2.78a12.712 12.712 0 0 1-2.096-2.183 6.6 6.6 0 0 1-.618-.997C2.144 12.754 2 12.382 2 12s.145-.754.284-1.04c.153-.315.365-.653.618-.997A12.714 12.714 0 0 1 4.998 7.78ZM12 15a3 3 0 1 0 0-6 3 3 0 0 0 0 6Z"
-                                                      clip-rule="evenodd"/>
+                                        {column.documentation}
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <a className="inline-flex items-center justify-center p-5 text-base font-medium text-gray-500 rounded-lg bg-gray-50 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-white">
+                                            <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                                                 xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
+                                                 viewBox="0 0 24 24">
+                                                <path stroke="currentColor" stroke-linecap="round"
+                                                      stroke-linejoin="round" stroke-width="2"
+                                                      d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"/>
                                             </svg>
                                         </a>
                                     </td>

@@ -1,5 +1,7 @@
 import os
 
+from botocore.handlers import document_base64_encoding
+from httpx import Client
 from django.conf import settings
 from django.shortcuts import render
 from django.forms.models import model_to_dict
@@ -11,16 +13,12 @@ from rest_framework.response import Response
 from .models import Catalog, Schema, Table, Column
 from .serializers import CatalogSerializer, SchemaSerializer, TableSerializer, ColumnSerializer
 from .serializers import SchemaSyncSerializer, TableSyncSerializer, ColumnSyncSerializer
-from datadocai.database import DatabaseClient
 
+# datadoc ai import
 from datadocai.metadata import TableMetadataManager
 from datadocai.database import DatabaseClient
-from datadocai.models import CurrentTable
-
-# datadocai package import
-import httpx
-from langchain_openai import AzureChatOpenAI
-from langchain.callbacks.streaming_stdout import StreamingStdOutCallbackHandler
+from datadocai.models import CurrentTable, DocumentationTable
+from langchain_openai.chat_models import AzureChatOpenAI
 
 
 class CatalogViewSet(viewsets.ModelViewSet):
@@ -59,7 +57,18 @@ class TableViewSet(viewsets.ModelViewSet):
     queryset = Table.objects.all()
     serializer_class = TableSerializer
 
-    @action(detail=True, methods=['post'])
+    @action(detail=True, methods=['get'])
+    def columns(self, request, pk=None):
+        try:
+            table = Table.objects.get(pk=pk)
+        except Table.DoesNotExist:
+            return Response({'error': 'Table not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        columns = Column.objects.filter(table=table)
+        columns_data = [model_to_dict(column) for column in columns]
+        return Response({'data': columns_data})
+
+    @action(detail=True, methods=['post'], url_path='generate-documentation')
     def generate_documentation(self, request, pk=None):
         if not pk:
             return Response(status=status.HTTP_400_BAD_REQUEST)
@@ -79,34 +88,32 @@ class TableViewSet(viewsets.ModelViewSet):
                             user=trino_config['USER'],
                             password=trino_config['PASSWORD'])
 
-        api_base = "https://studio-azure-proxy-france.intramundi.com:443"
-        deployment_name = "gpt-4-turbo"
-        temperature = 0
-
         llm = AzureChatOpenAI(
-            azure_endpoint=api_base,
-            deployment_name=deployment_name,
-            openai_api_key=os.getenv('OPENAI_API_KEY'),
-            openai_api_version="2023-12-01-preview",
-            streaming=True,  # for receive the response in streaming
-            callbacks=[StreamingStdOutCallbackHandler()],  # for display in the output intermediate steps
+            deployment_name="gpt-4o",
+            openai_api_version="2024-05-01-preview",
             verbose=True,
-            temperature=temperature,
-            http_client=httpx.Client(verify=False)
+            http_client=Client(verify=False)
         )
 
         tmm = TableMetadataManager(current_table=ct, database_client=dc, llm=llm)
 
         # launch the process
-        json_response = tmm.process()
+        result, export_result = tmm.process()
+        documentationGenerated = result["agent_outcome"]
+
+        table.documentation = documentationGenerated.description
+        table.save()
+
+        for column_name, colum_object in documentationGenerated.columns.items():
+            db_column, created = Column.objects.get_or_create(name=column_name, table_id=table.pk)
+            db_column.documentation = colum_object.description
+            db_column.save()
 
         # close the trino connection
         dc.close_connection()
 
         return Response({
-            'data': {
-                'json': json_response
-            }
+            'data': documentationGenerated.model_dump()
         })
 
 
@@ -191,9 +198,9 @@ def synchronize_columns_with_trino(request):
         table = Table.objects.get(id=table_id)
 
         th = DatabaseClient()
-        columns = th.list_columns(catalog_name=table.schema.catalog.name,
-                                  schema_name=table.schema.name,
-                                  table_name=table.name)
+        columns = th.list_columns(catalog=table.schema.catalog.name,
+                                  schema=table.schema.name,
+                                  table=table.name)
         th.close_connection()
 
         db_columns = []

@@ -81,5 +81,15 @@ class DatabaseClient:
         all_tables = [x[0] for x in current_schema_data]
         return all_tables
 
+    def list_columns(self, catalog: str, schema: str, table: str):
+        query = f"""
+        SHOW COLUMNS FROM {catalog}.{schema}.{table}
+        """
+        cursor = self.conn.cursor()
+        cursor.execute(query)
+        rows = cursor.fetchall()
+        cursor.close()
+        return [row[0] for row in rows]
+
     def close_connection(self):
         self.conn.close()
