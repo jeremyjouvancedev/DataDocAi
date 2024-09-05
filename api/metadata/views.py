@@ -27,10 +27,32 @@ class CatalogViewSet(viewsets.ModelViewSet):
     queryset = Catalog.objects.all()
     serializer_class = CatalogSerializer
 
+    @action(detail=True, methods=['get'])
+    def schemas(self, request, pk=None):
+        try:
+            catalog = Catalog.objects.get(pk=pk)
+        except Catalog.DoesNotExist:
+            return Response({'error': 'Catalog not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        schemas = Schema.objects.filter(catalog=catalog)
+        schemas_data = [model_to_dict(schema) for schema in schemas]
+        return Response({'data': schemas_data})
+
 
 class SchemaViewSet(viewsets.ModelViewSet):
     queryset = Schema.objects.all()
     serializer_class = SchemaSerializer
+
+    @action(detail=True, methods=['get'])
+    def tables(self, request, pk=None):
+        try:
+            schema = Schema.objects.get(pk=pk)
+        except Schema.DoesNotExist:
+            return Response({'error': 'Schema not found'}, status=status.HTTP_404_NOT_FOUND)
+
+        tables = Table.objects.filter(schema=schema)
+        tables_data = [model_to_dict(table) for table in tables]
+        return Response({'data': tables_data})
 
 
 class TableViewSet(viewsets.ModelViewSet):
@@ -118,7 +140,7 @@ def synchronize_schemas_with_trino(request):
         catalog = Catalog.objects.get(id=catalog_id)
 
         th = DatabaseClient()
-        schemas = th.list_schemas(catalog_name=catalog.name)
+        schemas = th.list_schemas(catalog=catalog.name)
         th.close_connection()
 
         db_schemas = []
@@ -143,7 +165,7 @@ def synchronize_tables_with_trino(request):
         schema = Schema.objects.get(id=schema_id)
 
         th = DatabaseClient()
-        tables = th.list_tables(catalog_name=schema.catalog.name, schema_name=schema.name)
+        tables = th.list_tables(catalog=schema.catalog.name, schema=schema.name)
         th.close_connection()
 
         db_tables = []

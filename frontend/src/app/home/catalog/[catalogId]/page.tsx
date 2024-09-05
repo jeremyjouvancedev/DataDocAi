@@ -1,69 +1,110 @@
-"use client"; // Add this directive at the top
-import {useState, useEffect, ChangeEvent} from "react";
-import {Button} from "@/components/ui/button";
+'use client';
+import {NextPage} from 'next';
+import {use} from 'next/navigation';
+import {useEffect, useState} from "react";
+import {hasOwnProperty} from "tailwindcss";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
-import {Input} from "@/components/ui/input";
+import {Button} from "@/components/ui/button"; // for client-side navigation
 
-interface Page {
-    id: number;
+interface PageProps {
+    params: {
+        catalogId: string;
+    };
+}
+
+interface Schema {
+
     name: string;
 }
 
-const CatalogsPage: React.FC = () => {
-    const [catalogs, setCatalogs] = useState<Page[]>([]);
-    const [searchTerm, setSearchTerm] = useState<string>("");
-    const [selectedCatalogs, setSelectedCatalogs] = useState<Page[]>([]);
+interface Catalog {
+    name: string;
+    schemas: Schema[];
+}
 
-    const fetchCatalogs = () => {
-        fetch("http://localhost:8000/metadata/catalogs")
-            .then(response => response.json())
-            .then((data: Page[]) => setCatalogs(data));
-    };
+const CatalogPage: NextPage<PageProps> = ({params}) => {
+    const {catalogId} = params;
+    const [catalog, setCatalog] = useState()
+    const [schemas, setSchemas] = useState<Schema[]>([])
+
+
+    const fetchSchemas = () => {
+        // Send selected catalogs to the backend for document generation
+        fetch(`http://localhost:8000/metadata/catalogs/${catalogId}/schemas/`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }).then((response) => {
+            if (response.ok) {
+                return response.json()
+            }
+        }).then((data) => {
+            if (data.data)
+                setSchemas(data.data)
+        });
+    }
+
+    const fetchCatalog = () => {
+        // Send selected catalogs to the backend for document generation
+        fetch(`http://localhost:8000/metadata/catalogs/${catalogId}/`, {
+            method: "GET",
+            headers: {
+                "Content-Type": "application/json",
+            },
+        }).then((response) => {
+            if (response.ok) {
+                return response.json()
+            }
+        }).then((data) => {
+            setCatalog(data)
+        });
+    }
 
     useEffect(() => {
-        // Fetch catalogs from an API or backend
-        fetchCatalogs()
+        fetchCatalog()
+        fetchSchemas()
     }, []);
 
-    const handleSearchChange = (e: ChangeEvent<HTMLInputElement>) => {
-        setSearchTerm(e.target.value);
-    };
-
-    const syncCatalogs = () => {
+    const handleSyncSchemas = () => {
         // Send selected catalogs to the backend for document generation
-        fetch("http://localhost:8000/metadata/synchronize/catalogs/", {
+        fetch("http://localhost:8000/metadata/synchronize/schemas", {
             method: "POST",
+            body: JSON.stringify({catalog_id: catalogId}),
             headers: {
                 "Content-Type": "application/json",
             }
         }).then((response) => {
             if (response.ok) {
-                fetchCatalogs()
+                fetchSchemas()
             }
         });
-    }
+    };
 
-    const filteredCatalogs = searchTerm
-        ? catalogs.filter((catalog) =>
-            catalog.name.toLowerCase().includes(searchTerm.toLowerCase())
-        )
-        : catalogs;
+    const handleDeepDive = (schemaName: string) => {
+        // Navigate or perform actions for schema deep dive
+        console.log(`Deep diving into schema: ${schemaName}`);
+    };
 
     return (
         <div className="container mx-auto flex max-w-7xl flex-col items-center justify-start gap-8 p-6">
-            <h1 className="text-3xl font-bold text-center text-gray-800">Catalog Management</h1>
+            <h1 className="text-3xl font-bold text-center text-gray-800">Schemas Management: {catalog?.name}</h1>
 
             <div className="w-full lg:max-w-2xl space-y-6">
-                {/* Search Input */}
-                <div className="flex w-full justify-center">
-                    <Input
-                        type="text"
-                        placeholder="Search catalogs..."
-                        value={searchTerm}
-                        onChange={handleSearchChange}
-                        className="w-full px-4 py-2 border rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
-                    />
-                </div>
+                <Card className="w-full">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-semibold text-gray-700">Actions</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Button
+                            onClick={handleSyncSchemas}
+                            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+                        >
+                            Sync Schemas
+                        </Button>
+                    </CardContent>
+                </Card>
+
 
                 <Card>
                     <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
@@ -80,16 +121,17 @@ const CatalogsPage: React.FC = () => {
                             </tr>
                             </thead>
                             <tbody>
-                            {filteredCatalogs.map((catalog) => (
+                            {schemas.map((schema) => (
                                 <tr className="bg-white border-b dark:bg-gray-800 dark:border-gray-700">
                                     <th scope="row"
                                         className="px-6 py-4 font-medium text-gray-900 whitespace-nowrap dark:text-white">
-                                        {catalog.name}
+                                        {schema.name}
                                     </th>
                                     <td className="px-6 py-4">
-                                        <a href={"home/catalog/" + catalog.id}
+                                        <a href={catalogId + "/schema/" + schema.id}
                                            className="inline-flex items-center justify-center p-5 text-base font-medium text-gray-500 rounded-lg bg-gray-50 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-white">
-                                            <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
+                                            <svg className="w-6 h-6 text-gray-800 dark:text-white"
+                                                 aria-hidden="true"
                                                  xmlns="http://www.w3.org/2000/svg" width="24" height="24"
                                                  fill="currentColor" viewBox="0 0 24 24">
                                                 <path fill-rule="evenodd"
@@ -105,23 +147,10 @@ const CatalogsPage: React.FC = () => {
                     </div>
                 </Card>
 
-                {/* Actions Section */}
-                <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-semibold text-gray-700">Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Button
-                            onClick={syncCatalogs}
-                            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                            Sync Catalogs
-                        </Button>
-                    </CardContent>
-                </Card>
+
             </div>
         </div>
     );
 };
 
-export default CatalogsPage;
+export default CatalogPage;

@@ -13,8 +13,8 @@ router.register(r'columns', ColumnViewSet)
 
 urlpatterns = [
     path('synchronize/catalogs/', synchronize_catalogs_with_trino, name='synchronize-catalogs-with-trino'),
-    path('synchronize/schemas', synchronize_schemas_with_trino, name='synchronize-schemas-with-trino'),
-    path('synchronize/tables', synchronize_tables_with_trino, name='synchronize-tables-with-trino'),
-    path('synchronize/columns', synchronize_columns_with_trino, name='synchronize-columns-with-trino'),
+    path('synchronize/schemas/', synchronize_schemas_with_trino, name='synchronize-schemas-with-trino'),
+    path('synchronize/tables/', synchronize_tables_with_trino, name='synchronize-tables-with-trino'),
+    path('synchronize/columns/', synchronize_columns_with_trino, name='synchronize-columns-with-trino'),
     path('', include(router.urls)),
 ]
