@@ -54,6 +54,7 @@ const CatalogsPage: React.FC = () => {
             <h1 className="text-3xl font-bold text-center text-gray-800">Catalog Management</h1>
 
             <div className="w-full lg:max-w-2xl space-y-6">
+
                 {/* Search Input */}
                 <div className="flex w-full justify-center">
                     <Input
@@ -64,6 +65,21 @@ const CatalogsPage: React.FC = () => {
                         className="w-full px-4 py-2 border rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
                     />
                 </div>
+
+                {/* Actions Section */}
+                <Card className="w-full">
+                    <CardHeader>
+                        <CardTitle className="text-lg font-semibold text-gray-700">Actions</CardTitle>
+                    </CardHeader>
+                    <CardContent className="space-y-4">
+                        <Button
+                            onClick={syncCatalogs}
+                            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+                        >
+                            Sync Catalogs
+                        </Button>
+                    </CardContent>
+                </Card>
 
                 <Card>
                     <div className="relative overflow-x-auto shadow-md sm:rounded-lg">
@@ -87,7 +103,7 @@ const CatalogsPage: React.FC = () => {
                                         {catalog.name}
                                     </th>
                                     <td className="px-6 py-4">
-                                        <a href={"home/catalog/" + catalog.id}
+                                        <a href={"catalogs/catalog/" + catalog.id}
                                            className="inline-flex items-center justify-center p-5 text-base font-medium text-gray-500 rounded-lg bg-gray-50 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-white">
                                             <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
                                                  xmlns="http://www.w3.org/2000/svg" width="24" height="24"
@@ -105,20 +121,6 @@ const CatalogsPage: React.FC = () => {
                     </div>
                 </Card>
 
-                {/* Actions Section */}
-                <Card className="w-full">
-                    <CardHeader>
-                        <CardTitle className="text-lg font-semibold text-gray-700">Actions</CardTitle>
-                    </CardHeader>
-                    <CardContent className="space-y-4">
-                        <Button
-                            onClick={syncCatalogs}
-                            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                            Sync Catalogs
-                        </Button>
-                    </CardContent>
-                </Card>
             </div>
         </div>
     );
