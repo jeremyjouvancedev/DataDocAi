@@ -71,7 +71,7 @@ const CatalogPage: NextPage<PageProps> = ({params}) => {
 
     const handleSyncSchemas = () => {
         // Send selected catalogs to the backend for document generation
-        fetch("http://localhost:8000/metadata/synchronize/schemas", {
+        fetch("http://localhost:8000/metadata/synchronize/schemas/", {
             method: "POST",
             body: JSON.stringify({catalog_id: catalogId}),
             headers: {
