@@ -29,6 +29,7 @@ const CatalogPage: NextPage<PageProps> = ({params}) => {
     const [schemas, setSchemas] = useState<Schema[]>([])
 
     const [searchTerm, setSearchTerm] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
 
     const fetchSchemas = () => {
         // Send selected catalogs to the backend for document generation

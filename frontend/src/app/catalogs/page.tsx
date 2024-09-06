@@ -11,8 +11,10 @@ interface Page {
 
 const CatalogsPage: React.FC = () => {
     const [catalogs, setCatalogs] = useState<Page[]>([]);
+
     const [searchTerm, setSearchTerm] = useState<string>("");
-    const [selectedCatalogs, setSelectedCatalogs] = useState<Page[]>([]);
+    const [loading, setLoading] = useState<boolean>(false);
+
 
     const fetchCatalogs = () => {
         fetch("http://localhost:8000/metadata/catalogs")
@@ -30,6 +32,7 @@ const CatalogsPage: React.FC = () => {
     };
 
     const syncCatalogs = () => {
+        setLoading(true)
         // Send selected catalogs to the backend for document generation
         fetch("http://localhost:8000/metadata/synchronize/catalogs/", {
             method: "POST",
@@ -37,6 +40,7 @@ const CatalogsPage: React.FC = () => {
                 "Content-Type": "application/json",
             }
         }).then((response) => {
+            setLoading(false)
             if (response.ok) {
                 fetchCatalogs()
             }
@@ -72,12 +76,19 @@ const CatalogsPage: React.FC = () => {
                         <CardTitle className="text-lg font-semibold text-gray-700">Actions</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Button
-                            onClick={syncCatalogs}
-                            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                            Sync Catalogs
-                        </Button>
+                        {loading ? (
+                            <div className="w-full flex justify-center">
+                                <div
+                                    className="w-6 h-6 border-4 border-indigo-400 border-dotted rounded-full animate-spin"></div>
+                            </div>
+                        ) : (
+                            <Button
+                                onClick={syncCatalogs}
+                                className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+                            >
+                                Sync Catalogs
+                            </Button>
+                        )}
                     </CardContent>
                 </Card>
 

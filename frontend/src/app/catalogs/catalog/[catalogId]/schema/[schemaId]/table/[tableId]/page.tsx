@@ -1,9 +1,10 @@
 "use client"; // Add this directive at the top
-import {useState, useEffect, ChangeEvent} from "react";
+import {useState, useEffect, ChangeEvent, FormEvent} from "react";
 import {Button} from "@/components/ui/button";
 import {Card, CardContent, CardHeader, CardTitle} from "@/components/ui/card";
 import {Input} from "@/components/ui/input";
 import {NextPage} from "next";
+import {Modal, ModalHeader, ModalBody, ModalFooter} from 'flowbite-react';
 
 interface Page {
     id: number;
@@ -28,6 +29,11 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
     const [columns, setColumns] = useState([]);
 
     const [searchTerm, setSearchTerm] = useState<string>("");
+    const [loading, setLoading] = useState<boolean>(false);
+
+    const [isModalOpen, setIsModalOpen] = useState<boolean>(false);
+    const [selectedColumn, setSelectedColumn] = useState<Column | null>(null);
+    const [newDescription, setNewDescription] = useState<string>("");
 
     const fetchCatalog = () => {
         // Send selected catalogs to the backend for document generation
@@ -107,6 +113,7 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
     };
 
     const syncColumns = () => {
+        setLoading(true)
         // Send selected catalogs to the backend for document generation
         fetch("http://localhost:8000/metadata/synchronize/columns/", {
             method: "POST",
@@ -117,6 +124,7 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                 "Content-Type": "application/json",
             }
         }).then((response) => {
+            setLoading(false)
             if (response.ok) {
                 fetchColumns()
             }
@@ -124,6 +132,8 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
     }
 
     const generateDocumentation = () => {
+        setLoading(true)
+
         // Send selected catalogs to the backend for document generation
         fetch(`http://localhost:8000/metadata/tables/${tableId}/generate-documentation/`, {
             method: "POST",
@@ -131,6 +141,8 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                 "Content-Type": "application/json",
             }
         }).then((response) => {
+            setLoading(false)
+
             if (response.ok) {
                 fetchTable()
                 fetchColumns()
@@ -143,6 +155,45 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
             column.name.toLowerCase().includes(searchTerm.toLowerCase())
         )
         : columns;
+
+    const handleEditClick = (column: Column) => {
+        setSelectedColumn(column);
+        setNewDescription(column.documentation);
+        setIsModalOpen(true);
+    };
+
+    const handleModalClose = () => {
+        setIsModalOpen(false);
+        setSelectedColumn(null);
+        setNewDescription("");
+    };
+
+    const handleDescriptionChange = (e: ChangeEvent<HTMLInputElement>) => {
+        setNewDescription(e.target.value);
+    };
+
+    const handleSaveDescription = (e: FormEvent) => {
+        e.preventDefault();
+
+        if (selectedColumn) {
+            fetch(`http://localhost:8000/metadata/columns/${selectedColumn.id}/`, {
+                method: "PUT",
+                body: JSON.stringify({
+                    name: selectedColumn.name,
+                    documentation: newDescription,
+                    table: selectedColumn.table
+                }),
+                headers: {
+                    "Content-Type": "application/json",
+                }
+            }).then((response) => {
+                if (response.ok) {
+                    fetchColumns();
+                    handleModalClose();
+                }
+            });
+        }
+    };
 
     return (
         <div className="container mx-auto flex max-w-7xl flex-col items-center justify-start gap-8 p-6">
@@ -165,7 +216,7 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                         <div className="flex items-center">
                             <svg className="rtl:rotate-180 block w-3 h-3 mx-1 text-gray-400 " aria-hidden="true"
                                  xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 6 10">
-                                <path stroke="currentColor" stroke-linecap="round" stroke-linejoin="round"
+                                <path stroke="currentColor" stroke-linecap="round" strokeLinejoin="round"
                                       stroke-width="2" d="m1 9 4-4-4-4"/>
                             </svg>
                             <a href={`/catalogs/catalog/${catalog?.id}`}
@@ -224,19 +275,27 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                         <CardTitle className="text-lg font-semibold text-gray-700">Actions</CardTitle>
                     </CardHeader>
                     <CardContent className="space-y-4">
-                        <Button
-                            onClick={generateDocumentation}
-                            className="w-full bg-lime-500 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                            Generate Documentation
-                        </Button>
-                        <Button
-                            onClick={syncColumns}
-                            className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
-                        >
-                            Sync Columns
-                        </Button>
 
+                        {loading ? (
+                            <div className="w-full flex justify-center">
+                                <div
+                                    className="w-6 h-6 border-4 border-indigo-400 border-dotted rounded-full animate-spin"></div>
+                            </div>
+                        ) : (
+                            <>
+                                <Button
+                                    onClick={generateDocumentation}
+                                    className="w-full bg-lime-500 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50"
+                                >
+                                    Generate Documentation
+                                </Button>
+                                <Button
+                                    onClick={syncColumns}
+                                    className="w-full bg-indigo-600 text-white hover:bg-indigo-700 focus:ring-4 focus:ring-indigo-500 focus:ring-opacity-50">
+                                    Sync Columns
+                                </Button>
+                            </>
+                        )}
                     </CardContent>
                 </Card>
 
@@ -277,15 +336,12 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                                         {column.documentation}
                                     </td>
                                     <td className="px-6 py-4">
-                                        <a className="inline-flex items-center justify-center p-5 text-base font-medium text-gray-500 rounded-lg bg-gray-50 hover:text-gray-900 hover:bg-gray-100 dark:text-gray-400 dark:bg-gray-800 dark:hover:bg-gray-700 dark:hover:text-white">
-                                            <svg className="w-6 h-6 text-gray-800 dark:text-white" aria-hidden="true"
-                                                 xmlns="http://www.w3.org/2000/svg" width="24" height="24" fill="none"
-                                                 viewBox="0 0 24 24">
-                                                <path stroke="currentColor" stroke-linecap="round"
-                                                      stroke-linejoin="round" stroke-width="2"
-                                                      d="m14.304 4.844 2.852 2.852M7 7H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h11a1 1 0 0 0 1-1v-4.5m2.409-9.91a2.017 2.017 0 0 1 0 2.853l-6.844 6.844L8 14l.713-3.565 6.844-6.844a2.015 2.015 0 0 1 2.852 0Z"/>
-                                            </svg>
-                                        </a>
+                                        <Button
+                                            onClick={() => handleEditClick(column)}
+                                            className="bg-blue-500 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50"
+                                        >
+                                            Edit
+                                        </Button>
                                     </td>
                                 </tr>
                             ))}
@@ -294,9 +350,43 @@ const TablesPage: NextPage<PageProps> = ({params}) => {
                     </div>
                 </Card>
 
+
             </div>
+
+            {isModalOpen && (
+                <div
+                    className="fixed inset-0 z-50 flex items-center justify-center bg-black bg-opacity-50">
+                    <div className="bg-white rounded-lg shadow-md p-6 space-y-4">
+                        <h2 className="text-lg font-semibold">Edit Description</h2>
+                        <form onSubmit={handleSaveDescription}>
+                            <div className="space-y-4">
+                                <Input
+                                    type="text"
+                                    value={newDescription}
+                                    onChange={handleDescriptionChange}
+                                    className="w-full px-4 py-2 border rounded-lg shadow-sm focus:border-indigo-500 focus:ring-indigo-500"
+                                />
+                                <div className="flex justify-end space-x-4">
+                                    <Button
+                                        type="button"
+                                        onClick={handleModalClose}
+                                        className="bg-gray-300 text-gray-700 hover:bg-gray-400 focus:ring-4 focus:ring-gray-200 focus:ring-opacity-50">
+                                        Cancel
+                                    </Button>
+                                    <Button
+                                        type="submit"
+                                        className="bg-blue-500 text-white hover:bg-blue-700 focus:ring-4 focus:ring-blue-300 focus:ring-opacity-50">
+                                        Save
+                                    </Button>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            )}
         </div>
-    );
+    )
+        ;
 };
 
 export default TablesPage;
