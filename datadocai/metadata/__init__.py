@@ -20,21 +20,21 @@ from langgraph.graph import END, StateGraph, START
 
 
 class TableMetadataManager:
-    def __init__(self, current_table: CurrentTable, database_client: DatabaseClient, llm,
+    def __init__(self, current_table: CurrentTable,
+                 database_client: DatabaseClient, llm,
                  metadata_exporter: MetadataExporterBase = None):
         self.client = database_client
         self.current_table = current_table
         self.llm = llm
-        if metadata_exporter is None:
-            self.metadata_exporter = MetadataJsonExporter(self.current_table)
-        else:
-            self.metadata_exporter = metadata_exporter
+
+        self.metadata_exporter = metadata_exporter
 
         self.agents = {}
         self.tasks = {}
         self.tools = {}
 
-        self.metadata_exporter.prepare()
+        if self.metadata_exporter:
+            self.metadata_exporter.prepare()
 
     def generate_tools(self):
         return [TableSchemaTool(current_table=self.current_table, db=self.client),
@@ -157,7 +157,9 @@ class TableMetadataManager:
                   "chat_history": []}
 
         result = app.invoke(inputs)
+        exporter_result = None
 
-        exporter_result = self.metadata_exporter.process(result['agent_outcome'])
+        if self.metadata_exporter:
+            exporter_result = self.metadata_exporter.process(result['agent_outcome'])
 
         return result, exporter_result
