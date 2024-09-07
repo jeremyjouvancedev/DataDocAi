@@ -22,22 +22,108 @@ Welcome to the repository of our innovative AI tool for automatic database docum
 ## Getting Started
 
 ### Prerequisites
-
-- Ensure you have Trino configured and working with your database.
 - Python >= 3.10 and pip (for installing and running scripts).
 
-### Installation
+
+### Quickstart
+
+1. Install package
+
+   ```shell
+   pip install datadocai
+   ```
+
+2. Add the following in the `.env-local` file
+
+   ```text
+   # .env-local
+
+   OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
+
+   TRINO_HOST=localhost
+   TRINO_PORT=8443
+   TRINO_USER=test
+   TRINO_PASSWORD=test
+
+   POSTGRES_USER=trino
+   POSTGRES_PASSWORD=trino
+   POSTGRES_HOST=localhost
+   POSTGRES_DATABASE=postgres
+   POSTGRES_PORT=5432
+   ```
+
+3. Run the database and trino
+   ```bash
+   docker-compose up trino-coordinator
+   ```
+
+   That will run a postgres database linked to trino. The postgres database is init with fake data for testing. You are free to link any database you want behind trino.
+   They are several connector available here: https://trino.io/docs/current/connector.html
+
+4. Simple Example
+   ```python
+   import os
+   from dotenv import load_dotenv
+   from langchain_openai import ChatOpenAI
+   from datadocai.models import CurrentTable
+   from datadocai.database import DatabaseClient  
+   from datadocai.metadata import TableMetadataManager
+   from datadocai.metadata.exporter.json import MetadataJsonExporter 
+   
+   env_loaded = load_dotenv('.env-local')
+
+   TRINO_CATALOG = 'postgres'
+   TRINO_SCHEMA = 'public'
+   TRINO_TABLE = 'house_pricing'
+
+   # construct the table you want to analyse
+   ct = CurrentTable(trino_catalog=TRINO_CATALOG,
+                     trino_schema=TRINO_SCHEMA,
+                     trino_table=TRINO_TABLE)
+
+
+   # connect to trino
+   dc = DatabaseClient(host=os.getenv('TRINO_HOST'),
+                     port=os.getenv('TRINO_PORT'),
+                     user=os.getenv('TRINO_USER'),
+                     password=os.getenv('TRINO_PASSWORD'))
+
+   llm = ChatOpenAI(model='gpt-4o')
+
+   metadata_exporter = MetadataJsonExporter(current_table=ct)
+
+   tmm = TableMetadataManager(current_table=ct, database_client=dc, llm=llm, metadata_exporter=metadata_exporter)
+
+   # launch the process
+   tmm.process()                     
+
+   # See into the outputs folder
+   ```
+
+5. You can run find multiple notebooks examples under `examples` folder
+
+_____
+
+
+### Local (Optional)
+
+#### Init
 
 1. Clone this repository to your local machine.
+
    ```bash
    git clone https://github.com/jeremyjouvancedev/DataDocAi.git
    ```
 2. Install the necessary dependencies.
+
    ```bash 
    make install
    ```
-3. Configure your database connection settings in the configuration file.
-4. Add the following in the `.env-local` file and `.env-docker` (for docker running)
+
+#### Configure the Database Connection
+
+1. Configure your database connection settings in the configuration file.
+2. Add the following in the `.env-local` file
 
 ```text
 # .env-local
@@ -49,24 +135,6 @@ TRINO_PORT=8443
 TRINO_USER=test
 TRINO_PASSWORD=test
 TRINO_CERTIFICATE_PATH=docker/trino/certificate.pem
-
-POSTGRES_USER=trino
-POSTGRES_PASSWORD=trino
-POSTGRES_HOST=postgres
-POSTGRES_DATABASE=postgres
-POSTGRES_PORT=5432
-```
-
-```text
-# .env-docker
-
-OPENAI_API_KEY=sk-XXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXXX
-
-TRINO_HOST=trino-coordinator
-TRINO_PORT=8443
-TRINO_USER=test
-TRINO_PASSWORD=test
-TRINO_CERTIFICATE_PATH=/home/app/datadocai/api/certificate.pem
 
 POSTGRES_USER=trino
 POSTGRES_PASSWORD=trino
@@ -89,6 +157,9 @@ POSTGRES_PORT=5432
 2. You can run multiple notebooks under `examples` folder
 3. The tool will start analyzing your database and generating documentation.
 4. Once completed, you will find the JSON documentation files in the `outputs` folder.
+
+_____
+
 
 ### Run local models
 
