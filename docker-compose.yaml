@@ -8,8 +8,9 @@ services:
     depends_on:
       - postgres
       - migration
+      - trino-coordinator
     volumes:
-      - ./:/home/app/datadocai
+      - ./api:/home/app/datadocai/api
       - ./docker/trino/certificate.pem:/home/app/datadocai/api/certificate.pem
     env_file:
       - .env-docker
@@ -21,17 +22,37 @@ services:
     networks:
       - net
 
+  frontend:
+    build:
+      context: .
+      dockerfile: frontend.Dockerfile
+    depends_on:
+      - backend
+    volumes:
+      - .:/app
+    ports:
+      - "3000:3000"
+    command: npm run dev
+    environment:
+      - NODE_ENV=development
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
+    networks:
+      - net
+
+
   migration:
     build:
       context: .
       dockerfile: backend.Dockerfile
+    user: 1001:1001
     env_file:
       - .env-docker
     entrypoint: [ "" ]
     depends_on:
       - postgres
     volumes:
-      - ./api:/home/app/datadocai
+      - ./api:/home/app/datadocai/api
     command: bash -c "python manage.py makemigrations && python manage.py migrate"
     networks:
       - net
@@ -52,11 +73,11 @@ services:
   postgres:
     ports:
       - "5432:5432"
-    image: postgres:12
+    image: postgres:13
     container_name: postgres
     environment:
-      POSTGRES_USER: dbt-trino
-      POSTGRES_PASSWORD: dbt-trino
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino
     networks:
       - net
 
@@ -68,8 +89,8 @@ services:
     volumes:
       - ./docker/postgres/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
     environment:
-      POSTGRES_USER: dbt-trino
-      POSTGRES_PASSWORD: dbt-trino
+      POSTGRES_USER: trino
+      POSTGRES_PASSWORD: trino
       POSTGRES_HOST: postgres
       POSTGRES_DATABASE: postgres
     command: >
@@ -78,9 +99,8 @@ services:
     networks:
       - net
 
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: vllm
+  ollama:
+    image: ollama/ollama
     deploy:
       resources:
         reservations:
@@ -88,13 +108,15 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
+    env_file:
+      - .env-ollama
     ports:
-      - '8001:8001'
+      - 11434:11434
     volumes:
-      - ./models:/models
-    command: --model mistralai/Mistral-7B-Instruct-v0.2 --port 8001 --download-dir /models --served-model-name vllm --max-model-len 8192
-
-
+      - ./ollama:/root/.ollama
+    #entrypoint: [""]
+    #command: bash -c "ollama serve & sleep 10; ollama run llama3.1:8b"
+    command: serve
 
 networks:
   net:

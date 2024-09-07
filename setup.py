@@ -10,7 +10,7 @@ with open(os.path.join(here, 'requirements.txt'), 'r') as f:
 
 setup(
     name="datadocai",
-    version="0.0.1",
+    version="0.0.3",
     packages=find_packages(),
     description="create database documentation with AI",
     install_requires=requirements,

@@ -35,11 +35,13 @@ INSTALLED_APPS = [
     'django.contrib.sessions',
     'django.contrib.messages',
     'django.contrib.staticfiles',
+    'corsheaders',
     'rest_framework',
     'metadata'
 ]
 
 MIDDLEWARE = [
+    'corsheaders.middleware.CorsMiddleware',
     'django.middleware.security.SecurityMiddleware',
     'django.contrib.sessions.middleware.SessionMiddleware',
     'django.middleware.common.CommonMiddleware',
@@ -48,6 +50,15 @@ MIDDLEWARE = [
     'django.contrib.messages.middleware.MessageMiddleware',
     'django.middleware.clickjacking.XFrameOptionsMiddleware',
 ]
+
+# Allow all origins (development only)
+CORS_ALLOW_ALL_ORIGINS = True
+
+# Allow specific origins
+#CORS_ALLOWED_ORIGINS = [
+#    "http://localhost:3000",  # Your Next.js frontend running locally
+#    "https://yourfrontenddomain.com",  # Your deployed Next.js frontend
+#]
 
 ROOT_URLCONF = 'api.urls'
 
@@ -123,8 +134,10 @@ STATIC_URL = 'static/'
 DEFAULT_AUTO_FIELD = 'django.db.models.BigAutoField'
 
 TRINO = {
-    'HOST':  os.getenv('TRINO_HOST'),
+    'HOST': os.getenv('TRINO_HOST'),
     'PORT': int(os.getenv('TRINO_PORT')),
     'USER': os.getenv('TRINO_USER'),
     'PASSWORD': os.getenv('TRINO_PASSWORD')
 }
+
+APPEND_SLASH = True  # or False, depending on your preference

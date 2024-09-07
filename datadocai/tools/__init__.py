@@ -1,8 +1,10 @@
+import json
+
 from typing import Any, Dict, Optional
 
 from langchain_core.tools import BaseTool
-from langchain_core.pydantic_v1 import BaseModel, Extra, Field, root_validator
-from langchain.callbacks.manager import AsyncCallbackManagerForToolRun, CallbackManagerForToolRun
+from langchain_core.pydantic_v1 import BaseModel,  Field 
+from langchain.callbacks.manager import CallbackManagerForToolRun
 
 from datadocai.database import DatabaseClient
 from datadocai.models import CurrentTable
@@ -19,8 +21,8 @@ class BaseSQLDatabaseTool(BaseModel):
 
 
 class TableSchemaTool(BaseSQLDatabaseTool, BaseTool):
-    name = "table_schema_tool"
-    description = "Fetches the schema of a specified table."  # Be sure that the tables actually exist by calling fetch_table_list FIRST!"
+    name = "sql_table_schema_tool"
+    description = "Get the schema for the specified SQL tables."  # Be sure that the tables actually exist by calling fetch_table_list FIRST!"
 
     # args_schema: Type[BaseModel] = TableNameInput
 
@@ -47,8 +49,8 @@ class TableSchemaTool(BaseSQLDatabaseTool, BaseTool):
 
 
 class TableSampleRowsTool(BaseSQLDatabaseTool, BaseTool):
-    name = "table_sample_rows_tool"
-    description = "Fetches the N sample rows of a specified table."  # Be sure that the tables actually exist by calling fetch_table_list FIRST!"
+    name = "sql_table_sample_rows_tool"
+    description = "Get sample rows for the specified SQL tables."  # Be sure that the tables actually exist by calling fetch_table_list FIRST!"
 
     # args_schema: Type[BaseModel] = TableNameInput
 
@@ -59,7 +61,8 @@ class TableSampleRowsTool(BaseSQLDatabaseTool, BaseTool):
 
         cursor = self.db.conn.cursor()
         try:
-            cursor.execute(f"select * from {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} limit 10")
+            cursor.execute(
+                f"select * from {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} limit 10")
             data = cursor.fetchall()
             description = cursor.description
         except Exception as e:
@@ -85,7 +88,6 @@ class TableSampleRowsTool(BaseSQLDatabaseTool, BaseTool):
         output += "\n"
         return output
 
-import json
 
 class TableFillObjectTool(BaseSQLDatabaseTool, BaseTool):
     name = "table_fill_object_tool"
@@ -97,4 +99,3 @@ class TableFillObjectTool(BaseSQLDatabaseTool, BaseTool):
             self, json_data: str, run_manager: Optional[CallbackManagerForToolRun] = None
     ) -> dict:
         return json.loads(json_data)
-        

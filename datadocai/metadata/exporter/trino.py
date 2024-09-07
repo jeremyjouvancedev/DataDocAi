@@ -1,7 +1,7 @@
 import json
 
 from datadocai.metadata.exporter.base import MetadataExporterBase
-from datadocai.models import CurrentTable
+from datadocai.models import CurrentTable, DocumentationTable
 from datadocai.database import DatabaseClient
 
 
@@ -13,34 +13,30 @@ class MetadataTrinoExporter(MetadataExporterBase):
     def prepare(self):
         pass
 
-    def process(self, json_data):
-        result = self.extract_json(json_data)[0]
-        result_json = json.loads(result)
-
-        data = result_json.get(self.current_table.trino_table)
-
-        description = data.get('description')
+    def process(self, json: DocumentationTable):
+        description = json.description
         clean_description = description.replace("'", "''")
 
         query = f"""
         COMMENT ON TABLE {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table}
         IS '{clean_description}'
         """
-        print(query, description)
+        print(f"{self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Table Documentation: {description}")
         result = self.client.execute_query(query)
 
-        for key, value in data.get('columns').items():
-            print(f"{self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Documentation for column {key}")
-            clean_value = value.replace("'", "''")
-            query = f"""
-            COMMENT ON COLUMN {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table}.{key}
-            IS '{clean_value}'
-            """
-            result = self.client.execute_query(query)
+        for key, value in json.columns.items():
+            try:
+                print(
+                    f"{self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Documentation for column {key}: {value}")
+                clean_value = value.description.replace("'", "''")
+                query = f"""
+                COMMENT ON COLUMN {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table}.{key}
+                IS '{clean_value}'
+                """
+                result = self.client.execute_query(query)
+
+            except Exception as e:
+                print(f"ERROR: {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Documentation for column {key}: {e}")
+        
 
         return result
-            
-
-
-
-

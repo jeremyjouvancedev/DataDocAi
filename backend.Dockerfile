@@ -28,13 +28,8 @@ COPY --chown=app:1001 . .
 RUN pip install --upgrade pip
 RUN pip install --upgrade -r api/requirements.txt
 
-# Installation of datadocai package
-USER root
-
 RUN pip install --upgrade setuptools
 RUN pip install -e .
-
-USER app
 
 ENV PYTHONPATH="/home/app/datadocai/datadocai:$PYTHONPATH"
 
