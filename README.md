@@ -34,9 +34,7 @@ Welcome to the repository of our innovative AI tool for automatic database docum
    ```
 2. Install the necessary dependencies.
    ```bash 
-   python -m venv venv
-   source venv/bin/activate
-   pip install -r requirements.txt
+   make install
    ```
 3. Configure your database connection settings in the configuration file.
 4. Add the following in the `.env-local` file and `.env-docker` (for docker running)
