@@ -21,17 +21,22 @@ class MetadataTrinoExporter(MetadataExporterBase):
         COMMENT ON TABLE {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table}
         IS '{clean_description}'
         """
-        print(query, description)
+        print(f"{self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Table Documentation: {description}")
         result = self.client.execute_query(query)
 
         for key, value in json.columns.items():
-            print(
-                f"{self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Documentation for column {key}")
-            clean_value = value.description.replace("'", "''")
-            query = f"""
-            COMMENT ON COLUMN {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table}.{key}
-            IS '{clean_value}'
-            """
-            result = self.client.execute_query(query)
+            try:
+                print(
+                    f"{self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Documentation for column {key}: {value}")
+                clean_value = value.description.replace("'", "''")
+                query = f"""
+                COMMENT ON COLUMN {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table}.{key}
+                IS '{clean_value}'
+                """
+                result = self.client.execute_query(query)
+
+            except Exception as e:
+                print(f"ERROR: {self.current_table.trino_catalog}.{self.current_table.trino_schema}.{self.current_table.trino_table} Set Documentation for column {key}: {e}")
+        
 
         return result

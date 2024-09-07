@@ -14,11 +14,12 @@ from .models import Catalog, Schema, Table, Column
 from .serializers import CatalogSerializer, SchemaSerializer, TableSerializer, ColumnSerializer
 from .serializers import SchemaSyncSerializer, TableSyncSerializer, ColumnSyncSerializer
 
+from langchain_openai import ChatOpenAI
+
 # datadoc ai import
 from datadocai.metadata import TableMetadataManager
 from datadocai.database import DatabaseClient
 from datadocai.models import CurrentTable, DocumentationTable
-from langchain_openai.chat_models import AzureChatOpenAI
 
 
 class CatalogViewSet(viewsets.ModelViewSet):
@@ -88,13 +89,9 @@ class TableViewSet(viewsets.ModelViewSet):
                             user=trino_config['USER'],
                             password=trino_config['PASSWORD'])
 
-        llm = AzureChatOpenAI(
-            deployment_name="gpt-4o",
-            openai_api_version="2024-05-01-preview",
-            verbose=True,
-            http_client=Client(verify=False)
-        )
 
+
+        llm = ChatOpenAI(model='gpt-4o', verbose=True)
         tmm = TableMetadataManager(current_table=ct, database_client=dc, llm=llm)
 
         # launch the process

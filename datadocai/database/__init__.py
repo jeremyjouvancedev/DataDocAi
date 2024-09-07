@@ -9,27 +9,17 @@ class DatabaseClient:
     def __init__(self, host=os.getenv('TRINO_HOST'),
                  port=os.getenv('TRINO_PORT'),
                  user=os.getenv('TRINO_USER'),
-                 password=os.getenv('TRINO_PASSWORD')):
+                 password=os.getenv('TRINO_PASSWORD'),
+                 certificate=os.getenv('TRINO_CERTIFICATE_PATH', False)):
 
-        if host in ['localhost', '127.0.0.1', 'postgres', 'trino-coordinator']:
-            print("LOCAL connection")
-            self.conn = connect(
+        self.conn = connect(
                 host=host,
                 port=port,
                 user=user,
                 auth=BasicAuthentication(user, password),
                 http_scheme=HTTPS,
-                verify=os.getenv('TRINO_CERTIFICATE_PATH', False)
-            )
-        else:
-            self.conn = connect(
-                host=host,
-                port=port,
-                user=user,
-                auth=BasicAuthentication(user, password),
-                http_scheme=HTTPS,
-                verify=False
-            )
+                verify=certificate
+        )
 
     def execute_query(self, query, data=None):
         cursor = self.conn.cursor()

@@ -13,10 +13,10 @@ Welcome to the repository of our innovative AI tool for automatic database docum
 - **Automatic Generation**: Automatically creates documentation for columns and tables of any database connected via Trino.
 - **Multiple Exporter**: Saves the documentation in an easily readable and integrable.
   - Raw `JSON` Extract
-  - `Trino` native comment
+  - `Trino` native comment (add the comment in the database behind directly)
+  - `Datadocai Api` integration with the web app 
   - `Open Metadata` (Will be available soon)
-  - `Datadocai Api` (Will be available soon)
-
+  
 - **Wide Compatibility**: Compatible with different types of databases connected through Trino.
 
 ## Getting Started
@@ -88,27 +88,23 @@ POSTGRES_PORT=5432
    That will run a postgres database linked to trino. The postgres database is init with fake data for testing. You are free to link any database you want behind trino.
    They are several connector available here: https://trino.io/docs/current/connector.html
 
-2. Run the tool using the following command:
-   ```bash
-   pip install -e . # for datadocai local install
-   python examples/gpt-4-example.py
-   ```
+2. You can run multiple notebooks under `examples` folder
 3. The tool will start analyzing your database and generating documentation.
 4. Once completed, you will find the JSON documentation files in the `outputs` folder.
 
 ### Run local models
 
 1. Start the local model server
-   The model by default is `mistral 7b` for better result you should use another bigger models with function calling.
-   For mistral 7b you need a gpu with `22Go` ram available for `8k` tokens.
+   The model by default is `mistral-nemo:12b-instruct-2407-q4_0` for better result you should use another bigger models with function calling.
+   For mistral-nemo:12b-instruct-2407-q4_0 you need a gpu with `7Go` ram available for `128k` tokens.
    ```
-   docker-compose up vllm
+   docker-compose up ollama
    ```
-2.  Run the tool using the following command:
-   ```bash
-   pip install -e . # for datadocai local install
-   python examples/mistral-example.py
+2. Run the command for downloading and make the model available
    ```
+   docker compose exec ollama ollama pull mistral-nemo:12b-instruct-2407-q4_0
+   ```
+3.  Run the example `example/exporter-json/local-mistral-nemo-example.ipynb`
 
 ## Documentation
 

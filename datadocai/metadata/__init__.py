@@ -1,33 +1,36 @@
-import json
-import os
-
-from crewai import Agent, Task, Crew, Process
-
 from datadocai.models import CurrentTable
 from datadocai.database import DatabaseClient
-from datadocai.tools import TableSchemaTool, TableSampleRowsTool, TableFillObjectTool
-from .exporter.json import MetadataJsonExporter, MetadataExporterBase
+from datadocai.tools import TableSchemaTool, TableSampleRowsTool
+from .exporter.json import  MetadataExporterBase
 
-from langchain.agents import create_openai_functions_agent
+from langchain.agents import create_openai_functions_agent, create_react_agent
 from langchain_core.prompts import ChatPromptTemplate
 from .states import AgentState
 from langchain_core.agents import AgentFinish
 from langgraph.prebuilt.tool_executor import ToolExecutor
 from langchain.output_parsers import PydanticOutputParser
 from langchain_core.prompts import PromptTemplate
-from datadocai.models import DocumentationTable, DocumentationColumn
+from datadocai.models import DocumentationTable
 from langgraph.graph import END, StateGraph, START
+from langchain import hub
 
 
 class TableMetadataManager:
     def __init__(self, current_table: CurrentTable,
-                 database_client: DatabaseClient, llm,
+                 database_client: DatabaseClient, 
+                 llm,
+                 output_llm=None,
+                 local_llm=False,                 
                  metadata_exporter: MetadataExporterBase = None):
         self.client = database_client
         self.current_table = current_table
         self.llm = llm
-
+        self.local_llm = local_llm
         self.metadata_exporter = metadata_exporter
+
+        self.output_llm = output_llm
+        if not output_llm:
+            self.output_llm = llm
 
         self.agents = {}
         self.tasks = {}
@@ -36,15 +39,19 @@ class TableMetadataManager:
         if self.metadata_exporter:
             self.metadata_exporter.prepare()
 
+        
+
     def generate_tools(self):
         return [TableSchemaTool(current_table=self.current_table, db=self.client),
                 TableSampleRowsTool(current_table=self.current_table, db=self.client)]
 
     def generate_agent(self):
+        instructions = "You are an advanced assistant specialized in analyzing database schemas and sample data. Your task is to generate detailed, accurate, and insightful descriptions of database tables and their columns. Each description should be clear and concise, highlighting the purpose of the table, the significance of its columns, and any key relationships or patterns. You MUST Use available Tools to gather additional information for a comprehensive understanding of the table."
+
+
         prompt = ChatPromptTemplate.from_messages(
             [
-                ("system",
-                 "You are an intelligent assistant that generates detailed descriptions of database tables and their columns based on the provided schema and sample data. Your goal is to provide clear, concise, and insightful descriptions."),
+                ("system", instructions),
                 ("placeholder", "{chat_history}"),
                 ("human", "{input}"),
                 ("placeholder", "{agent_scratchpad}"),
@@ -52,7 +59,13 @@ class TableMetadataManager:
         )
 
         tools = self.generate_tools()
-        agent_runnable = create_openai_functions_agent(self.llm, tools, prompt)
+
+        if self.local_llm:
+            base_prompt = hub.pull("langchain-ai/react-agent-template")
+            prompt = base_prompt.partial(instructions=instructions)
+            agent_runnable = create_react_agent(self.llm, tools, prompt)
+        else:
+            agent_runnable = create_openai_functions_agent(self.llm, tools, prompt)
         return agent_runnable
 
     def generate_nodes(self):
@@ -79,9 +92,6 @@ class TableMetadataManager:
             # This will be used when setting up the graph to define the flow
             if isinstance(data["agent_outcome"], AgentFinish):
                 return "respond"
-            # Otherwise, an AgentAction is returned
-            # Here we return `continue` string
-            # This will be used when setting up the graph to define the flow
             else:
                 return "continue"
 
@@ -95,7 +105,7 @@ class TableMetadataManager:
                 partial_variables={"format_instructions": parser.get_format_instructions()},
             )
 
-            chain = prompt | self.llm | parser
+            chain = prompt | self.output_llm | parser
 
             response = chain.invoke({'query': state['agent_outcome'].return_values['output']})
 
@@ -150,13 +160,13 @@ class TableMetadataManager:
         workflow = self.generate_graph()
         return workflow.compile()
 
-    def process(self) -> tuple[DocumentationTable, dict]:
+    def process(self, debug=False) -> tuple[DocumentationTable, dict]:
         app = self.compile_graph()
 
         inputs = {"input": f"Create a documentation for the table: {self.current_table.trino_table}",
                   "chat_history": []}
 
-        result = app.invoke(inputs)
+        result = app.invoke(inputs, debug=debug)
         exporter_result = None
 
         if self.metadata_exporter:

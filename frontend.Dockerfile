@@ -22,5 +22,7 @@ EXPOSE 3000
 # Set environment variable for development
 ENV NODE_ENV=development
 
+WORKDIR /app/frontend
+
 # Start the Next.js development server
 CMD ["npm", "run", "dev"]

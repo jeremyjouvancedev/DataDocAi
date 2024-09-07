@@ -8,8 +8,9 @@ services:
     depends_on:
       - postgres
       - migration
+      - trino-coordinator
     volumes:
-      - ./:/home/app/datadocai
+      - ./api:/home/app/datadocai/api
       - ./docker/trino/certificate.pem:/home/app/datadocai/api/certificate.pem
     env_file:
       - .env-docker
@@ -44,13 +45,14 @@ services:
     build:
       context: .
       dockerfile: backend.Dockerfile
+    user: 1001:1001
     env_file:
       - .env-docker
     entrypoint: [ "" ]
     depends_on:
       - postgres
     volumes:
-      - ./api:/home/app/datadocai
+      - ./api:/home/app/datadocai/api
     command: bash -c "python manage.py makemigrations && python manage.py migrate"
     networks:
       - net
@@ -97,9 +99,8 @@ services:
     networks:
       - net
 
-  vllm:
-    image: vllm/vllm-openai:latest
-    container_name: vllm
+  ollama:
+    image: ollama/ollama
     deploy:
       resources:
         reservations:
@@ -107,13 +108,15 @@ services:
             - driver: nvidia
               count: 1
               capabilities: [ gpu ]
+    env_file:
+      - .env-ollama
     ports:
-      - '8001:8001'
+      - 11434:11434
     volumes:
-      - ./models:/models
-    #command: --model mistralai/Mistral-7B-Instruct-v0.2 --port 8001 --download-dir /models --served-model-name vllm --max-model-len 8192
-    command: --model microsoft/Phi-3-mini-4k-instruct --port 8001 --download-dir /models --served-model-name vllm
-
+      - ./ollama:/root/.ollama
+    #entrypoint: [""]
+    #command: bash -c "ollama serve & sleep 10; ollama run llama3.1:8b"
+    command: serve
 
 networks:
   net:
